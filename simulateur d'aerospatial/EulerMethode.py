@@ -123,7 +123,7 @@ print("1er")
 #ProcessLune()
 
 
-"""
+
 print(fusee.position.Norme()-Constante.RAYON_TERRE)
 print(Constante.RAYON_TERRE)
 print(fusee.position.Norme() - Constante.RAYON_TERRE)
@@ -151,7 +151,7 @@ plt.show()
 
 
 # Example file showing a circle moving on screen
-
+"""
 import pygame
 
 # pygame setup
