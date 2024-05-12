@@ -1,2 +1,3 @@
-L'ensemble des explications relatives à ce repository sont disponibles dans le fichier PDF "cours et explications".
+L'ensemble des explications relatives à ce repository sont disponibles dans le fichier PDF "cours et explications" ou par le lien suivant : https://groupefenelon-my.sharepoint.com/:w:/g/personal/lverite_edufenelon_org/EYZx-2YVKFFCpEV9g0vcaqYBkK0SRmtcdwaLYx0M8-pYJw?rtime=PbK-sX5y3Eg
 Les autres fichiers tels que le script python, ne sont pas à regarder du faite que leurs fonctionnements et explications n'ont pas été fait.
+Le fichier contenant du code informatique python est en cours de développement.

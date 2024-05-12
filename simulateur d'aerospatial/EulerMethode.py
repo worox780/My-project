@@ -1,6 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 
 
 class Vector2:
@@ -9,8 +9,98 @@ class Vector2:
   def Set(self, x:float, y:float): self.x, self.y = x, y
   def Norme(self) -> float: return np.sqrt(self.x**2 + self.y**2)
 
+
+class Constante:
+  G = 6.67*10**(-11)
+  MASSE_TERRE = 5.972*10**24 #en kg
+  RAYON_TERRE = 6_371_000 #en mètre
+  POS_TERRE = Vector2(0,0) #origine du monde
+  RAYON_LUNE = 1_738_000
+  MASSE_LUNE = 7.347*10**22
+  DELTA = 0.01
+
+
+class Gravite:
+  def IntensitePesenteur(
+      position_:Vector2, masse_attracteur_:float, rayon_:float
+      ) -> Vector2:
+    if position_.Norme() < rayon_: gravite:float = ((position_.Norme()/rayon_) * ((Constante.G*masse_attracteur_)/((rayon_)**2)))**2 #la gravité sur l'axe x est proportionnel à la profondeur, le rayon et l'intensité à la surface en fonction de la profondeur s'il on est dans la planète
+    else: gravite:float = ((Constante.G*masse_attracteur_)/(position_.Norme()**2))**2
+
+    pos_x:float = gravite*(position_.x/position_.Norme())
+    pos_y:float = gravite*(position_.y/position_.Norme())
+
+    if pos_x != 0: pos_x = np.sqrt(abs(pos_x))*(pos_x/abs(pos_x))
+    if pos_y != 0: pos_y = np.sqrt(abs(pos_y))*(pos_y/abs(pos_y))
+
+    return Vector2(pos_x,pos_y)
+  def ForceInteraction(
+      masse_objet1_:float, masse_objet2_:float,
+      position_objet1_:Vector2, position_objet2_:Vector2
+      ) -> float:
+    distance:Vector2 = Vector2(position_objet1_.x-position_objet2_.x, position_objet1_.y-position_objet2_.y).Norme()
+    return (Constante.G*masse_objet1_*masse_objet2_)/(distance**2)
+
+
+class EquationHoraire:
+  def CalculAcceleration(
+      masse_objet_:float, pousse_:Vector2, position_:Vector2
+      )-> Vector2:
+    gravite:Vector2 = Gravite.IntensitePesenteur(
+      position_=position_, masse_attracteur_=Constante.MASSE_TERRE,
+      rayon_=Constante.RAYON_TERRE
+      )
+    acceleration = Vector2((pousse_.x)/masse_objet_ - gravite.x, (pousse_.y)/masse_objet_ - gravite.y)
+    return acceleration
+  def CalculVitesse(
+      acceleration_n_:Vector2, vitesse_:Vector2
+      ) -> Vector2:
+    #equation --> formule de la vitesse de Newton
+    return Vector2(acceleration_n_.x*Constante.DELTA + vitesse_.x, acceleration_n_.y*Constante.DELTA + vitesse_.y)
+  def CalculPosition(
+      acceleration_:Vector2, vitesse_:Vector2, position_:Vector2, delta=Constante.DELTA
+      ) -> Vector2:
+    #equation --> formule de la position de Newton
+    return Vector2(0.5*(acceleration_.x*delta**2) + vitesse_.x*delta + position_.x, 0.5*(acceleration_.y*delta**2) + vitesse_.y*delta + position_.y)
+
+
+class EquationEnergie:
+  def CalculPosition(position_:Vector2, vitesse_actuelle_:Vector2, vitesse_future_:Vector2)-> Vector2:
+    gravite:Vector2 = Gravite.IntensitePesenteur(
+      position_=position_, masse_attracteur_=Constante.MASSE_TERRE,
+      rayon_=Constante.RAYON_TERRE
+      )
+    #print(0.5 * vitesse_actuelle_.Norme()**2 * 780000 + gravite.Norme()*(position_.Norme()-Constante.RAYON_TERRE)*780000)
+    delta_polynome = 2*vitesse_actuelle_.Norme()**2 - vitesse_future_.Norme()**2
+    #print(delta_polynome)
+    if delta_polynome < 0: return 1
+    temps_delta = (-vitesse_actuelle_.Norme()+np.sqrt(delta_polynome))/gravite.Norme()
+    if temps_delta < 0: return Constante.DELTA
+    return temps_delta
+    """
+    distance **= 2
+    
+    pos_x:float = distance*(gravite.x/gravite.Norme())
+    pos_y:float = distance*(gravite.y/gravite.Norme())
+
+    if pos_x != 0: pos_x = np.sqrt(abs(pos_x))*(pos_x/abs(pos_x))
+    if pos_y != 0: pos_y = np.sqrt(abs(pos_y))*(pos_y/abs(pos_y))
+    #print(Vector2(pos_x, pos_y).Norme())
+    return Vector2(pos_x, pos_y)"""
+
+  def CalculPositionNew(masse_:float, vitesse_now_:Vector2, vitesse_future_:Vector2, position_:Vector2, gravite_:Vector2):
+    em_a = 0.5 * vitesse_now_.Norme()**2 * masse_ + gravite_.Norme() * masse_ * (position_.Norme()-Constante.RAYON_TERRE)
+    coef_a = (em_a - 0.5 * vitesse_future_.Norme()**2 * masse_)/(Constante.G * Constante.MASSE_TERRE * masse_)
+    coef_b = (2 * Constante.RAYON_TERRE * em_a - Constante.RAYON_TERRE * masse_ * vitesse_future_.Norme()**2 - Constante.G * Constante.MASSE_TERRE * masse_)/(Constante.G * Constante.MASSE_TERRE * masse_)
+    coef_c = (Constante.RAYON_TERRE**2 * em_a - Constante.RAYON_TERRE**2 * 0.5 * masse_ * vitesse_future_.Norme()**2)
+
+    return (abs(coef_b**2), (4 * coef_a * coef_c))
+
 class ObjetCelleste:
-  def __init__(self, position:Vector2=Vector2(0,0), pousse:Vector2=Vector2(0,0), masse_objet:float=1.0, rayon:float=1.0, energie_mecanique:float=0.0) -> None:
+  def __init__(self, position:Vector2=Vector2(0,0),
+               pousse:Vector2=Vector2(0,0), masse_objet:float=1.0,
+               rayon:float=1.0, energie_mecanique:float=0.0
+               ) -> None:
     #----------Vecteur2----------
     #-----Valeurs équation horaires-----
     self.acceleration:Vector2 = Vector2(0,0)
@@ -36,55 +126,23 @@ class ObjetCelleste:
   def AppendY(self, value) -> None:self.position_y.append(value)
 
 
-class Constante:
-  G = 6.67*10**(-11)
-  MASSE_TERRE = 5.972*10**24 #en kg
-  RAYON_TERRE = 6_371_000 #en mètre
-  POS_TERRE = Vector2(0,0) #origine du monde
-  RAYON_LUNE = 1_738_000
-  MASSE_LUNE = 7.347*10**22
-  DELTA = 1
+def CalculDelta():
+  Em_a = 0
+  m = 0
+  v_b = 0
 
+  denominateur = Constante.G*Constante.MASSE_TERRE*m
 
-class Gravite:
-  def IntensitePesenteur(position:Vector2, masse_attracteur:float, rayon:float, position_attracteur:Vector2) -> Vector2:
-    position_plan_attracteur:Vector2 = Vector2(position.x, position.y)
-    if position.Norme() < rayon: gravite:float = (position_plan_attracteur.Norme()/rayon) * ((Constante.G*masse_attracteur)/((rayon)**2)) #la gravité sur l'axe x est proportionnel à la profondeur, le rayon et l'intensité à la surface en fonction de la profondeur s'il on est dans la planète
-    else: gravite:float = (Constante.G*masse_attracteur)/(position_plan_attracteur.Norme()**2)
+  coef_a = (Em_a-0.5*m*v_b**2)/denominateur
+  numerateur_b = (2*Constante.RAYON_TERRE*Em_a-Constante.RAYON_TERRE*m*v_b**2-Constante.G*Constante.MASSE_TERRE*m)
+  coef_b = numerateur_b/denominateur
+  coef_c = (Constante.RAYON_TERRE**2 *Em_a- Constante.RAYON_TERRE**2 * 0.5*m*v_b**2)/denominateur
 
-    gravite **=2
+  delta = coef_b**2 - 4*coef_a*coef_c
 
-    pos_x:float = gravite*(position_plan_attracteur.x/position_plan_attracteur.Norme())
-    pos_y:float = gravite*(position_plan_attracteur.y/position_plan_attracteur.Norme())
+  valeur_recherche = (-coef_b + np.sqrt(delta))/(2*coef_a)
+  
 
-    if pos_x != 0: pos_x = np.sqrt(abs(pos_x))*(pos_x/abs(pos_x))
-    if pos_y != 0: pos_y = np.sqrt(abs(pos_y))*(pos_y/abs(pos_y))
-
-    return Vector2(pos_x,pos_y)
-  def ForceInteraction(masse_objet1:float, masse_objet2:float, position_objet1:Vector2, position_objet2:Vector2):
-    distance:Vector2 = Vector2(position_objet1.x-position_objet2.x, position_objet1.y-position_objet2.y).Norme()
-    return (Constante.G*masse_objet1*masse_objet2)/(distance**2)
-
-class Cinematique:
-  def CalculAcceleration(masse_objet, pousse:Vector2, position:Vector2):
-    gravite:Vector2 = Gravite.IntensitePesenteur(position=position, masse_attracteur=Constante.MASSE_TERRE, rayon=Constante.RAYON_TERRE, position_attracteur=Constante.POS_TERRE)
-    acceleration = Vector2((pousse.x)/masse_objet - gravite.x, (pousse.y)/masse_objet - gravite.y)
-    return acceleration
-  def CalculVitesse(delta:float, acceleration_n:Vector2, acceleration_n1:Vector2, vitesse:Vector2) -> Vector2:
-    #equation --> V(i) + 0.5*(a(i)+a(i+1))*delta
-    return Vector2(0.5*(acceleration_n.x + acceleration_n1.x)*delta + vitesse.x, 0.5*(acceleration_n.y + acceleration_n1.y)*delta + vitesse.y)
-  def CalculPosition(delta:float, acceleration:Vector2, vitesse:Vector2, position:Vector2) -> Vector2:
-    #equation --> (1/(2*g))*(V(i)**2 - v(i+1))
-    return Vector2(position.x + vitesse.x*delta + 0.5*(acceleration.x*delta**2), position.y + vitesse.y*delta + 0.5*(acceleration.y*delta**2))
-  def CalculPositionNew(vitesse_actuelle:Vector2, vitesse_suivante:Vector2, position_actuelle:Vector2, position_suivante:Vector2, gravite:Vector2) -> Vector2:
-    #equation --> h(b) = (G*M(terre))/((0.5 * V(i)**2)+(h(i)*g(i))-(0.5*V(i+1)))
-    #norme_position = (vitesse_actuelle.Norme()**2 - vitesse_suivante.Norme()**2)/(2*gravite.Norme()) + (position_actuelle.Norme())
-    norme_position = 1/( (vitesse_actuelle.Norme()**2)/(2*Constante.G*Constante.MASSE_TERRE) + 1/position_actuelle.Norme() - (vitesse_suivante.Norme()**2)/(2*Constante.G*Constante.MASSE_TERRE))
-
-    pos_x:float = norme_position*(gravite.x/gravite.Norme())
-    pos_y:float = norme_position*(gravite.y/gravite.Norme())
-
-    return Vector2(pos_x,pos_y)
 
 
     
@@ -102,48 +160,33 @@ class Energie:
 
 fusee:ObjetCelleste = ObjetCelleste(position=Vector2(0, Constante.RAYON_TERRE), pousse=Vector2(0,15_120_000), masse_objet=780000, rayon=2)
 terre:ObjetCelleste = ObjetCelleste(position=Vector2(0,0), pousse=Vector2(0,0), masse_objet=Constante.MASSE_TERRE, rayon=Constante.RAYON_TERRE)
-lune:ObjetCelleste = ObjetCelleste(position=Vector2(0,Constante.RAYON_TERRE+384_400_000+Constante.RAYON_LUNE), pousse=Vector2(0,0), masse_objet=Constante.MASSE_TERRE, rayon=Constante.RAYON_LUNE)
+#lune:ObjetCelleste = ObjetCelleste(position=Vector2(0,Constante.RAYON_TERRE+384_400_000+Constante.RAYON_LUNE), pousse=Vector2(0,0), masse_objet=Constante.MASSE_TERRE, rayon=Constante.RAYON_LUNE)
 
 
 def ProcessFusee():
-  energie = []
-  alti_theo = []
-  alti_theo2 = []
-  alti_actu = []
-  for i in range(100_000): #int(226520*3)
+  lst_em = []
+  for i in range(1_000_000): #int(226520*3)
     #-----La propulsion de la fusée-----
-    gravite:Vector2 = Gravite.IntensitePesenteur(position=fusee.position, masse_attracteur=Constante.MASSE_TERRE, rayon=Constante.RAYON_TERRE, position_attracteur=Constante.POS_TERRE)
-    Ec = Energie.EnergieCinetique(masse_objet=fusee.masse_objet, vitesse=fusee.vitesse.Norme())
-    Epp = Energie.EnergiePotentielPesenteur(masse_objet=fusee.masse_objet, altitude=(fusee.position.Norme()-Constante.RAYON_TERRE), pesenteur=gravite.Norme())
-    energie.append(Ec+Epp)
     if (i <= 350/Constante.DELTA):
       fusee.SetPousse(Vector2(i*100_000*Constante.DELTA,15_120_000))
-    elif (i >= (3837//2)) and (i <= (3837//2) + 120/Constante.DELTA):
-      fusee.SetPousse(Vector2(100_000,-12_120_000))
+    elif (i >= (2000//2)) and (i <= (2000//2) + 1_000/Constante.DELTA):
+      fusee.SetPousse(Vector2(10_000_000,-12_120_000))
     else:fusee.SetPousse(Vector2(0,0))
     
-    
-    #print(fusee.energie_mecanique == energie[-1])
 
-    accel_inter = Cinematique.CalculAcceleration(masse_objet=fusee.masse_objet, pousse=fusee.pousse, position=fusee.position)
-    vit_inter = Cinematique.CalculVitesse(delta=Constante.DELTA, acceleration_n=fusee.acceleration, acceleration_n1=accel_inter, vitesse=fusee.vitesse)
-    pos_inter = Cinematique.CalculPosition(delta=Constante.DELTA, acceleration=fusee.acceleration, vitesse=fusee.vitesse, position=fusee.position)
+    accel_inter = EquationHoraire.CalculAcceleration(masse_objet_=fusee.masse_objet, pousse_=fusee.pousse, position_=fusee.position)
+    vit_inter = EquationHoraire.CalculVitesse(acceleration_n_=fusee.acceleration, vitesse_=fusee.vitesse)
+    inter_lol = Constante.DELTA
+    if fusee.pousse.Get() == [0,0]:
+      inter_lol = EquationEnergie.CalculPosition(position_=fusee.position, vitesse_actuelle_=fusee.vitesse, vitesse_future_=vit_inter)
+    pos_inter = EquationHoraire.CalculPosition(acceleration_=fusee.acceleration, vitesse_=fusee.vitesse, position_=fusee.position, delta=inter_lol)
+    if fusee.pousse.Get() == [0,0]:
+      gravite:Vector2 = Gravite.IntensitePesenteur(
+        position_=pos_inter, masse_attracteur_=Constante.MASSE_TERRE,
+        rayon_=Constante.RAYON_TERRE
+        )
+      lst_em.append(0.5*vit_inter.Norme()**2*fusee.masse_objet + fusee.masse_objet*gravite.Norme()*(pos_inter.Norme()-Constante.RAYON_TERRE))
     
-    
-    #alti_actu.append(fusee.position.Norme()-Constante.RAYON_TERRE)
-    if (i <= 350/Constante.DELTA):# or ((i >= (3837//2)) and (i <= (3837//2) + 120*Constante.DELTA)):
-      #fusee.energie_mecanique = Ec+Epp
-      alti_theo2.append(fusee.position.Norme()-Constante.RAYON_TERRE)
-      #alti_theo2.append(fusee.position.Norme()-Constante.RAYON_TERRE)
-    else:
-      pass
-      #pos_inter = Cinematique.CalculPositionNew(vitesse_actuelle=fusee.vitesse, vitesse_suivante=vit_inter, position_actuelle=fusee.position, position_suivante=pos_inter, gravite=gravite)
-      #alti_theo2.append(pos_inter.Norme()-Constante.RAYON_TERRE)
-      #alti_theo.append(1/( (fusee.vitesse.Norme()**2)/(2*Constante.G*Constante.MASSE_TERRE) + 1/fusee.position.Norme() - (vit_inter.Norme()**2)/(2*Constante.G*Constante.MASSE_TERRE)))
-      #print(alti_theo2[-1])
-      #print(alti_theo[-1], " : ", alti_theo2[-1])"""
-      
-
     fusee.SetAcceleration(accel_inter)
     fusee.SetVitesse(vit_inter)
     fusee.SetPosition(pos_inter)
@@ -156,39 +199,13 @@ def ProcessFusee():
     if (fusee.position.Norme() - Constante.RAYON_TERRE) < 0:
       print("i : ", i)
       break
-  
-  return (energie, alti_actu, alti_theo, alti_theo2)
-
-def ProcessLune():
-  pousse_lune = Gravite.ForceInteraction(masse_objet1=terre.masse_objet, masse_objet2=lune.masse_objet, position_objet1=terre.position, position_objet2=lune.position)
-  for i in range(1_000_000): #int(226520*3)
-    
-    #-----La propulsion de la fusée-----
-    if (i == 0): lune.SetPousse(Vector2(((10523.96404)*Constante.MASSE_LUNE),pousse_lune))
-    else: lune.SetPousse(Vector2(0,0))
-
-    lune.SetAcceleration(Cinematique.CalculAcceleration(masse_objet=lune.masse_objet, pousse=lune.pousse, position=lune.position))
-    lune.SetVitesse(Cinematique.CalculVitesse(delta=Constante.DELTA, acceleration=lune.acceleration, vitesse=lune.vitesse))
-    lune.SetPosition(Cinematique.CalculPosition(delta=Constante.DELTA, acceleration=lune.acceleration, vitesse=lune.vitesse, position=lune.position))
-    lune.AppendX(lune.position.x)
-    lune.AppendY(lune.position.y)
-    
-    if (lune.position.Norme() - Constante.RAYON_TERRE) < 0:
-      print("i : ", i)
-      break
+  return lst_em
 
 
-print("lolol")
 processe = ProcessFusee()
-
-
-timee = []
-for i in range(100_000): timee.append(i)
-
-print("1er")
-print(len(processe[-1]))
-
-
+lst_t = []
+for i in range(len(processe)):
+  lst_t.append(i)
 
 resolution = 1000 #number of points used to draw the circle 
 a = Constante.POS_TERRE.x #I arbitrary chose a center-x coordinate called a 
@@ -201,19 +218,19 @@ x += [a+r] #so that the last point is exactly at the right-end of the circle
 y_plus = [(r**2 - (value-a)**2)**0.5 + b for value in x] 
 y_minus = [2*b-value for value in y_plus] #y_plus - a = a - y_minus 
 
-fig, (p1,p3) = plt.subplots(2)
+fig, (p3) = plt.subplots(1)
 
 p3.plot(x,y_plus)
 p3.plot(x,y_minus)
 p3.plot(fusee.position_x,fusee.position_y)
 p3.plot([a],[b],"x") #draw a cross at the center of the circle 
 
-p1.plot(timee, processe[0])
+fig, (p1) = plt.subplots(1)
+#p1.plot(timee, processe[0])
+p1.plot(lst_t, processe, label="actue")
+p1.legend()
 """
-p1.plot(timee, processe[-1], label="actue")
-p1.plot(timee, processe[2], label="theo")
-#p1.plot(timee, processe[3], label="theo2")
-p1.legend()"""
+"""
 
 """p2.plot(timee, processe[0][0], label="Em")
 p2.plot(timee, processe[0][1], label="Ec")
