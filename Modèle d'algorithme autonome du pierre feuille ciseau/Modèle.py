@@ -65,18 +65,11 @@ def Probabilite():
     p2 = lst_ciseau_suite[suite_de_coup[1]-1][2]/(sum(lst_ciseau_suite[suite_de_coup[1]-1])*suite_de_coup[1])
     p0 = ((1-p2)*(lst_ciseau_suite[suite_de_coup[1]-1][0]))/(lst_ciseau_suite[suite_de_coup[1]-1][0]+lst_ciseau_suite[suite_de_coup[1]-1][1])
     p1 = ((1-p2)*(lst_ciseau_suite[suite_de_coup[1]-1][1]))/(lst_ciseau_suite[suite_de_coup[1]-1][0]+lst_ciseau_suite[suite_de_coup[1]-1][1])
-    if ia < p0 * 100: ia = 0 #jouer feuille
+    if ia < p0 * 100: ia = 2 #jouer feuille
     elif ia < (p0+p2) * 100: ia = 1 #jouer ciseau
-    else: ia = 2 #jouer pierre
-    
-  #print(p0, p1, p2)
+    else: ia = 0 #jouer pierre
 
-  #return ia
-  
-#joueur = 0
-#print(Probabilite())
 
-print()
 def Winer(): #Qui gagner
   global victoire_ia, victoire_joueur
   if (ia == 1) and (joueur == 0):
@@ -100,22 +93,16 @@ def SelectionListe(last_coup:int) -> None:
   else: lst_ciseau_suite[suite_de_coup[1]-1][joueur] += 1
 
 
-for i in range(50):
+while joueur >= 0:
   try:
     joueur = int(input()) #coup du joueur --> 0 = pierre --> 1 = feuille --> 2 = ciseau
   except: break
   if joueur > 2: joueur = 2
-  ia = random.random()*100 #coup de l'ia entre 0 et 100
-
+  if joueur < 0: break
   #----- Section choix du coup de l'ia -----
-  #print(Probabilite())
-  proba = Probabilite()
-  #print(proba)
-  #if ia < proba[1] * 100: ia = 1 #jouer feuille
-  #elif ia < (proba[0]+proba[1]) * 100: ia = 2 #jouer ciseau
-  #else: ia = 0 #jouer pierre
+  ia = random.random()*100 #coup de l'ia entre 0 et 100
+  proba = Probabilite() #Choix du coup pour l'ia
 
-  #print(joueur)
   #----- Section pour le traitement du coup du joueur -----
   if joueur == 0: #Si pierre
     pierre += 1 
