@@ -106,6 +106,7 @@ class ObjetCelleste:
     self.acceleration:Vector2 = Vector2(0,0)
     self.vitesse:Vector2 = Vector2(0,0)
     self.position:Vector2 = position #position actuelle
+    self.old_posisition:Vector2 = position
     #-----------------------------------
     #-----Valeurs caractéristique de la fusée-----
     self.pousse:Vector2 = pousse
@@ -128,20 +129,23 @@ class ObjetCelleste:
 
 def CalculDelta(Em_a, m, v_b):
 
-  denominateur = Constante.G*Constante.MASSE_TERRE*m
-
-  coef_a = (Em_a-0.5*m*v_b**2)/denominateur
-  numerateur_b = (2*Constante.RAYON_TERRE*Em_a-Constante.RAYON_TERRE*m*v_b**2-Constante.G*Constante.MASSE_TERRE*m)
-  coef_b = numerateur_b/denominateur
-  coef_c = (Constante.RAYON_TERRE**2 *Em_a- Constante.RAYON_TERRE**2 * 0.5*m*v_b**2)/denominateur
+  coef_a = Em_a-0.5*m*(v_b**2)
+  coef_b = 2*Constante.RAYON_TERRE*Em_a - Constante.RAYON_TERRE*m*(v_b**2) - Constante.G*Constante.MASSE_TERRE*m
+  coef_c = (Constante.RAYON_TERRE**2)*Em_a - 0.5*(Constante.RAYON_TERRE**2)*m*(v_b**2)
 
   delta = coef_b**2 - 4*coef_a*coef_c
   print(delta)
-  if delta > 0:
+  """if delta > 0:
     valeur_recherche = (-coef_b + np.sqrt(delta))/(2*coef_a)
-    if valeur_recherche > 0: return valeur_recherche
+    if valeur_recherche > 0: return valeur_recherche"""
   return 1
+
+def OtherCalculus(cur_pos:Vector2, prev_pos:Vector2, cur_accel:Vector2, delta_t:float):
   
+  pos_x_inter = 2*cur_pos.x - prev_pos.x + cur_accel.x*(delta_t**2)
+  pos_y_inter = 2*cur_pos.y - prev_pos.y + cur_accel.y*(delta_t**2)
+  
+  return Vector2(pos_x_inter, pos_y_inter)
 
 
 
@@ -165,7 +169,7 @@ terre:ObjetCelleste = ObjetCelleste(position=Vector2(0,0), pousse=Vector2(0,0), 
 
 def ProcessFusee():
   lst_em = []
-  for i in range(10_000): #int(226520*3)
+  for i in range(1_000_000): #int(226520*3)
     #-----La propulsion de la fusée-----
     if (i <= 350/Constante.DELTA):
       fusee.SetPousse(Vector2(i*100_000*Constante.DELTA,15_120_000))
@@ -176,22 +180,23 @@ def ProcessFusee():
 
     accel_inter = EquationHoraire.CalculAcceleration(masse_objet_=fusee.masse_objet, pousse_=fusee.pousse, position_=fusee.position)
     vit_inter = EquationHoraire.CalculVitesse(acceleration_n_=fusee.acceleration, vitesse_=fusee.vitesse)
-    inter_lol = Constante.DELTA
+    pos_inter = OtherCalculus(cur_pos=fusee.position, prev_pos=fusee.old_posisition, cur_accel=fusee.acceleration, delta_t=Constante.DELTA)
+    """
     if fusee.pousse.Get() == [0,0]:
       gravite:Vector2 = Gravite.IntensitePesenteur(
         position_=fusee.position, masse_attracteur_=Constante.MASSE_TERRE,
         rayon_=Constante.RAYON_TERRE
         )
       lst_em.append(0.5*fusee.position.Norme()**2*fusee.masse_objet + fusee.masse_objet*gravite.Norme()*(fusee.position.Norme()-Constante.RAYON_TERRE))
-    
+    """
 
-      inter_lol = CalculDelta(
-        Em_a=lst_em[-1], m=fusee.masse_objet, v_b=fusee.vitesse.Norme())
+      #inter_lol = CalculDelta(
+      #  Em_a=lst_em[-1], m=fusee.masse_objet, v_b=fusee.vitesse.Norme())
       #print(inter_lol)
       #inter_lol = EquationEnergie.CalculPosition(position_=fusee.position, vitesse_actuelle_=fusee.vitesse, vitesse_future_=vit_inter)
-    pos_inter = EquationHoraire.CalculPosition(acceleration_=fusee.acceleration, vitesse_=fusee.vitesse, position_=fusee.position, delta=inter_lol)
+    #pos_inter = EquationHoraire.CalculPosition(acceleration_=fusee.acceleration, vitesse_=fusee.vitesse, position_=fusee.position, delta=inter_lol)"""
     
-    
+    fusee.old_posisition = fusee.position
     fusee.SetAcceleration(accel_inter)
     fusee.SetVitesse(vit_inter)
     fusee.SetPosition(pos_inter)
