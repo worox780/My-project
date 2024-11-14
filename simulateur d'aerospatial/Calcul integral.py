@@ -88,13 +88,16 @@ class EquationEnergie:
     #print(Vector2(pos_x, pos_y).Norme())
     return Vector2(pos_x, pos_y)"""
 
-  def CalculPositionNew(masse_:float, vitesse_now_:Vector2, vitesse_future_:Vector2, position_:Vector2, gravite_:Vector2):
-    em_a = 0.5 * vitesse_now_.Norme()**2 * masse_ + gravite_.Norme() * masse_ * (position_.Norme()-Constante.RAYON_TERRE)
-    coef_a = (em_a - 0.5 * vitesse_future_.Norme()**2 * masse_)/(Constante.G * Constante.MASSE_TERRE * masse_)
-    coef_b = (2 * Constante.RAYON_TERRE * em_a - Constante.RAYON_TERRE * masse_ * vitesse_future_.Norme()**2 - Constante.G * Constante.MASSE_TERRE * masse_)/(Constante.G * Constante.MASSE_TERRE * masse_)
-    coef_c = (Constante.RAYON_TERRE**2 * em_a - Constante.RAYON_TERRE**2 * 0.5 * masse_ * vitesse_future_.Norme()**2)
+  def CalculNouvelleAltitude(masse_:float, vitesse_now_:Vector2, vitesse_future_:Vector2, position_:Vector2, gravite_:Vector2):
+    coef_a = gravite_.Norme()*(position_.Norme()-Constante.RAYON_TERRE) + 0.5*(vitesse_now_.Norme()**2 - vitesse_future_.Norme()**2)
+    coef_b = Constante.RAYON_TERRE*(2*gravite_.Norme()*(position_.Norme()-Constante.RAYON_TERRE) + (vitesse_now_.Norme()**2 - vitesse_future_.Norme()**2)) - masse_*Constante.G*Constante.MASSE_TERRE
+    coef_c = Constante.RAYON_TERRE**2 * (gravite_.Norme()*(position_.Norme()-Constante.RAYON_TERRE) + 0.5*(vitesse_now_.Norme()**2 - vitesse_future_.Norme()**2))
 
-    return (abs(coef_b**2), (4 * coef_a * coef_c))
+    return (np.sqrt(coef_b**2 - 4 * coef_a * coef_c), vitesse_now_, gravite_)
+  
+  def CalculNouvellePosition(information:tuple): return (-information[1] + information[0])/information[2]
+  
+
 
 class ObjetCelleste:
   def __init__(self, position:Vector2=Vector2(0,0),
@@ -169,7 +172,7 @@ terre:ObjetCelleste = ObjetCelleste(position=Vector2(0,0), pousse=Vector2(0,0), 
 
 def ProcessFusee():
   lst_em = []
-  for i in range(1_000_000): #int(226520*3)
+  for i in range(100_000): #int(226520*3)
     #-----La propulsion de la fusée-----
     if (i <= 350/Constante.DELTA):
       fusee.SetPousse(Vector2(i*100_000*Constante.DELTA,15_120_000))
@@ -181,15 +184,17 @@ def ProcessFusee():
     accel_inter = EquationHoraire.CalculAcceleration(masse_objet_=fusee.masse_objet, pousse_=fusee.pousse, position_=fusee.position)
     vit_inter = EquationHoraire.CalculVitesse(acceleration_n_=fusee.acceleration, vitesse_=fusee.vitesse)
     pos_inter = OtherCalculus(cur_pos=fusee.position, prev_pos=fusee.old_posisition, cur_accel=fusee.acceleration, delta_t=Constante.DELTA)
-    """
+    
     if fusee.pousse.Get() == [0,0]:
       gravite:Vector2 = Gravite.IntensitePesenteur(
         position_=fusee.position, masse_attracteur_=Constante.MASSE_TERRE,
         rayon_=Constante.RAYON_TERRE
         )
       lst_em.append(0.5*fusee.position.Norme()**2*fusee.masse_objet + fusee.masse_objet*gravite.Norme()*(fusee.position.Norme()-Constante.RAYON_TERRE))
-    """
-
+    
+      information_altitude = EquationEnergie.CalculNouvelleAltitude(masse_=fusee.masse_objet, vitesse_now_=fusee.vitesse, vitesse_future_=vit_inter, position_=fusee.position, gravite_=gravite)
+      
+      #print(delta_signe)
       #inter_lol = CalculDelta(
       #  Em_a=lst_em[-1], m=fusee.masse_objet, v_b=fusee.vitesse.Norme())
       #print(inter_lol)
